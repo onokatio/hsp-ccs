@@ -1,0 +1,69 @@
+#module
+	;▼必要となるAPIや定数の定義
+	#uselib  "user32.dll"
+	#func  GetClassName "GetClassNameA" int,var,int
+	#func  CharUpper "CharUpperA" var
+	#func  SetWindowLong "SetWindowLongA" int,int,int
+	#func  ReleaseDC "ReleaseDC" int,int
+
+	#uselib "gdi32.dll"
+	#cfunc  CreateCompatibleBitmap "CreateCompatibleBitmap" int,int,int
+	#cfunc  CreateCompatibleDC "CreateCompatibleDC" int
+	#func   SelectObject "SelectObject" int,int
+	#func   BitBlt "BitBlt" int,int,int,int,int,int,int,int,int
+	#func   DeleteDC "DeleteDC" int
+
+	#define  GWL_STYLE            $FFFFFFF0
+	#define  BM_SETIMAGE          $000000F7
+	#define  BS_BITMAP            $00000080
+
+	#deffunc imagebtn int prm1,int prm2,int prm3,int prm4,int prm5,int prm6
+	;
+	;   ・引数     objectID (int) : 0〜objectMAX  HSPオブジェクトID
+	;              nWinID   (int) : 0〜           bufferイメージ格納ID
+	;              plx      (int) : 0〜winx(0)    位置 x
+	;              ply      (int) : 0〜winy(0)    位置 y
+	;              pbx      (int) : 0〜winx(0)    幅
+	;              pby      (int) : 0〜winy(0)    高さ
+	mref bmscr,67
+	objectID = prm1 : if (objectID<0)|(objectID>bmscr(72)) : return -1
+	nWinID   = prm2
+
+	;bufferからのコピーに対応する
+	nWinID(1)=bmscr(18)  ;現在アクティブなウィンドウID
+	gsel nWinID : mref g_bmscr,67 : gsel nWinID(1)
+
+	plx = prm3 : if (plx<=0)|(plx>ginfo(12)) : plx=0
+	ply = prm4 : if (ply<=0)|(ply>ginfo(13)) : ply=0
+	pbx = prm5 : if (pbx<=0)|(pbx>ginfo(12)) : pbx=0
+	pby = prm6 : if (pby<=0)|(pby>ginfo(13)) : pby=0
+	hCld = objinfo(objectID,2) : if hCld==0 : return -1
+
+	;コントロールがボタンかどうか
+	String=""
+	GetClassName hCld,String,64 : CharUpper String
+	if String!"BUTTON" :  return -1
+	hBitmap=CreateCompatibleBitmap(g_bmscr(4),pbx,pby)
+	if hBitmap==0 : return -1
+	hdc_mem=CreateCompatibleDC(g_bmscr(4))
+	if hdc_mem==0 : return -1
+	SelectObject hdc_mem,hBitmap
+	BitBlt hdc_mem,0,0,pbx,pby,g_bmscr(4),plx,ply,$00CC0020
+	SetWindowLong hCld,GWL_STYLE,$50000000|BS_BITMAP
+
+	;BM_SETIMAGE メッセージ送信
+	sendmsg hCld,BM_SETIMAGE,0,hBitmap
+	DeleteDC hdc_mem
+	ReleaseDC hCld,g_bmscr(4)
+	return 0
+	#global
+
+	;***** sample *****
+
+	pos 0,0 : picload dirinfo(1)+"ico.bmp"
+	objsize 280,480 : pos 0,0 : button "",*jump
+	imagebtn 0,0,0,0,280,480
+	stop
+*jump
+	dialog "イメージボタン",0
+	stop

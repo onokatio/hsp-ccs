@@ -1,0 +1,385 @@
+*start
+
+#packopt name "ie"
+;#include "ccs.as"
+#packopt type 0
+#include "user32.as"
+#const IDW_Main 0	// メイン画面
+#const IDW_Sub  1	// サブの画面
+#define CLSID_AcroPDF "{CA8A9780-280D-11CF-A24D-444553540000}"
+#define DIID_DWebBrowserEvents2     "{34A715A0-6587-11D0-924A-0020AFC7AC4D}"
+#define DISPID_NAVIGATECOMPLETE2    252
+#define OLECMDID_CUT 11    ; 切り取り  ctrl+x
+#define OLECMDID_COPY 12   ; コピー    ctrl+c
+#define OLECMDID_PASTE 13  ; 貼り付け  ctrl+v
+#define OLECMDID_UNDO 15   ; 元に戻す  ctrl+z
+#define OLECMDID_DELETE 33 ; 削除 del
+#define ctype LOWORD(%1) (%1 & $FFFF)
+;	項目ID
+;#enum IDM_XXX = 1
+;#enum IDM_YYY
+;#enum IDM_ZZZ
+;#enum IDM_BBB
+;#enum IDM_CCC
+;#enum IDM_KOUMOKU1
+;#enum IDM_KOUMOKU2
+
+;screen 0, ginfo(20), ginfo(21) ;最初の画面をスクリーン最大に
+
+
+onclick gosub *move
+onkey gosub *pushkey
+oncmd gosub *command, $111
+;objsize 45,25 
+;mx=5 : my=30 : px=3 : py=3
+;----------------------------------------------------------------
+
+	
+;	WM_COMMANDメッセージ
+CreatePopupMenu
+	hMenu.5 = stat
+		;第3パラはメニュー項目ID
+		AppendMenu hMenu.5, 0, IDM_ITEM3, "サブメニュー項目 3"
+		AppendMenu hMenu.5, 0, IDM_ITEM4, "サブメニュー項目 4"
+
+;	<メインのポップアップメニュー>
+;	メインのポップアップメニューを作成し、ハンドルを取得
+	CreatePopupMenu
+	hMenu.6 = stat
+		AppendMenu hMenu.6, 0, IDM_ITEM1, "メニュー項目 1"
+;		第2パラを$800にするとセパレータ(区切り線)になる。
+	AppendMenu hMenu.6, $800, 0, ""
+		AppendMenu hMenu.6, 0, IDM_ITEM2, "メニュー項目 2"
+	;	第2パラメータを$10にするとサブメニューへ。
+;		第3パラにサブメニューのハンドルを入れる。
+		AppendMenu hMenu.6, $10, hMenu.6, "サブメニュー"
+
+
+;	<ポップアップメニュー>
+	CreatePopupMenu
+	hMenu.4 = stat
+;		第3パラはメニュー項目ID
+		AppendMenu hMenu.4, 0, IDM_XXX2, "ＸＸＸ"
+		AppendMenu hMenu.4, 0, IDM_YYY2, "ＹＹＹ"
+		AppendMenu hMenu.4, 0, IDM_ZZZ2, "ＺＺＺ"
+		
+	CreatePopupMenu
+	hMenu.3 = stat
+;		第3パラはメニュー項目ID
+		AppendMenu hMenu.3, 0, IDM_XXX, "ＸＸＸ"
+		AppendMenu hMenu.3, 0, IDM_YYY, "ＹＹＹ"
+		AppendMenu hMenu.3, 0, IDM_ZZZ, "ＺＺＺ"
+
+;		hMenu.3の$6〜$8をグループ化し、$7に黒丸チェックを入れる
+		CheckMenuRadioItem hMenu.3, IDM_XXX, IDM_ZZZ, IDM_YYY, $100
+		CheckMenuRadioItem hMenu.4, IDM_XXX2, IDM_ZZZ2, IDM_YYY2, $100
+
+	CreatePopupMenu
+	hMenu.2 = stat
+;		第2パラ$10はサブメニュー、第3パラにサブメニューのハンドル
+		AppendMenu hMenu.2, $10, hMenu.3, "ＡＡＡ"
+;		第2パラ$1はグレイ表示
+		AppendMenu hMenu.2, $1, IDM_BBB, "ＢＢＢ"
+;		第2パラ$8は項目チェック (オン/オフの処理必要)
+		AppendMenu hMenu.2, $8, IDM_CCC, "ＣＣＣ"
+
+	CreatePopupMenu
+	hMenu.1 = stat
+		AppendMenu hMenu.1, 0, IDM_PDF, "PDFロード"
+		AppendMenu hMenu.1, $800, 0, ""	// 第2パラ$800は区切り線
+		AppendMenu hMenu.1, 0, IDM_REBOOT, "再起動"
+		AppendMenu hMenu.1, 0, IDM_EXIT, "終了"
+
+;	<メインのメニューバー>
+	CreateMenu
+	hMenu.0 = stat
+;		第2パラ$10はポップアップメニュー、第3パラにポップアップメニューハンドル
+		AppendMenu hMenu.0, $10, hMenu.1, "ccs"
+		AppendMenu hMenu.0, $10, hMenu.2, "設定"
+		AppendMenu hMenu.0, $10, hMenu.3, "ヘルプ"
+;		第2パラ$4000を加えて以降のメニュー位置が右側に
+
+;	ウィンドウにメニューを付ける
+	SetMenu hwnd, hMenu.0
+	DrawMenuBar hwnd
+	GetSystemMetrics 15 :hh = stat
+	buffer 2,16,16,
+	buffer 3,16,16,
+	buffer 4,16,16,
+	buffer 5,16,16,
+	buffer 6,16,16,
+  	bgscr 0,ginfo_dispx,20,,0,19
+	ww =hwnd
+	SetMenu hwnd,hMenu.0
+	DrawMenuBar hwnd
+	bgscr 1,ginfo_dispx,ginfo_dispy,1,0,0,ginfo_dispx,ginfo_dispy
+	
+	Setparent ww,hwnd
+
+
+	goto *first
+
+//	WM_COMMANDメッセージ
+*command
+if lparam = 0 {
+;		wparamの下位ワードにメニュー項目ID
+		wID = LOWORD(wparam)
+
+;		メニュー項目 ｢項目1｣
+		if wID = IDM_PDF {
+			
+			return
+		}
+;		メニュー項目 ｢項目2｣
+		if wID = IDM_REBOOT {
+			gsel 1
+			goto *first
+			return
+		}
+		if wID = IDM_EXIT {
+			end
+			return
+		}
+		if wID >= IDM_XXX & wID <= IDM_ZZZ {
+			return
+		}
+		return
+	}
+	return
+
+
+
+
+
+*first
+	gsel 1
+	cls 2
+	sdim url,512
+	homeurl="http://google.com/"
+	url=homeurl
+;	gsel IDW_Main, 0
+	boxf 0,0,ginfo_dispx,18
+	color 255,255,255
+	boxf 0,0,16,15
+	picload "ico.bmp",1
+	color 0,0,0
+	objsize 550,20
+	pos 0,42:mes " URL:"
+	pos 40,42:input url
+	objsize 50,20
+	pos 590,42:button "⇒",*wow
+	objsize 17,17
+	pos 1263-17-17,0:button "-",*win0
+	pos 1263-17,0:button "□",*win1
+	pos 1263,0:button "x",*cend
+	
+	objsize 16,16
+	
+	objimage ,,,,,,
+	gsel 2
+	picload "back.jpg",1
+	gsel 1
+	objimage 2,0,0,,,,
+	pos 0,81:button "",*go_b
+	
+	objimage ,,,,,,
+	gsel 3
+	picload "go.jpg",1
+	gsel 1
+	objimage 3,0,0,,,,
+	pos 17,81:button "",*go_f
+	
+	objimage ,,,,,,
+	gsel 4
+	picload "update.png",1
+	gsel 1
+	objimage 4,0,0,,,,
+	pos 0,64:button "",*kousin
+	
+	objimage ,,,,,,
+	gsel 5
+	picload "stop.png",1
+	gsel 1
+	objimage 5,0,0,,,,
+	pos 17,64:button "",*tyuusi
+	
+	objimage ,,,,,,
+	gsel 6
+	picload "home.png",1
+	gsel 1
+	objimage 6,0,0,,,,
+	pos 34,64:button "",*home
+	
+	objimage ,,,,,,
+	objsize 50,24
+	pos 100,88:button "CCS",*CCS
+	pos 150,64:button "スタート",*win6
+	pos 150,88:button "スクロール",*scroll_auto
+	pos 200,64:button "off",*win3
+	pos 200,88:button "reboot",*first
+;	pos 250,64:button "",*
+;	pos 250,88:button "",*
+	objsize 100,24
+	pos ginfo_dispx-100,88+24:button "pdfロード",*pdf
+	button "anon",*anon
+	button "anon japan",*anonj
+	
+
+	pos 0,88+24
+	axobj ie, "Shell.Explorer.2",ginfo_dispx/2,ginfo_dispy-150
+	num=stat
+	comevent ie_event, ie, "{34A715A0-6587-11D0-924A-0020AFC7AC4D}",*event	; DIID_DWebBrowserEvents2     
+	ie->"Navigate" url
+	
+	pos ginfo_dispx/2+1,88+24
+	axobj AcroPDF, CLSID_AcroPDF, ginfo_dispx/2-101,ginfo_dispy-150
+	
+	
+	onkey gosub *pushkey
+
+*pushkey
+	if wparam=46 {ie->"ExecWB" OLECMDID_DELETE,0,0:return}
+	getkey ctrl,17    ; ctrl
+	getkey key_c,67   ; c
+	getkey key_v,86   ; v
+	getkey key_x,88   ; x
+	getkey key_z,90   ; z
+	if(ctrl & key_c){ie->"ExecWB" OLECMDID_COPY,0,0:return}
+	if(ctrl & key_v){ie->"ExecWB" OLECMDID_PASTE,0,0:return}
+	if(ctrl & key_x){ie->"ExecWB" OLECMDID_CUT,0,0:return}
+	if(ctrl & key_z){ie->"ExecWB" OLECMDID_UNDO,0,0:return}
+	
+*main
+	stop
+*event
+	;	COMイベント処理
+	dispid = comevdisp(ie_event)
+	if dispid = DISPID_NAVIGATECOMPLETE2 : gosub *OnNavigateComplete2
+	return 
+
+*OnNavigateComplete2
+	name = ie("LocationURL")
+	objprm 0,name
+	pDoc = ie("Document")
+	name = pDoc("Title")
+	title name
+	delcom pDoc
+	return
+*wow
+	ie->"Navigate" url
+	goto *main
+	
+*book
+	goto *main
+	
+*go_f
+
+	ie->"GoForward"
+	goto *main
+*go_b
+
+	ie->"GoBack"
+	goto *main
+*kousin
+
+	ie->"Refresh"
+	goto *main
+*tyuusi
+
+	ie->"stop"
+	goto *main
+*home
+	url=homeurl
+	ie->"Navigate" url
+	goto *main
+
+*CCS
+	exec "ccs.exe"
+	end
+	
+*anon
+	url="http://anoncentral.tumblr.com/"
+	ie->"Navigate" url
+	goto *main
+*anonj
+	url="http://anon-media-japan.blogspot.jp/"
+	ie->"Navigate" url
+	goto *main
+
+
+*cend
+	end
+	
+*pdf
+	
+	dialog "pdf", 16, "PDFファイル"
+	AcroPDF->"LoadFile" refstr
+
+
+
+stop
+*move 
+	
+if wparam=1{
+	if (mousex>0)and(mousex<ginfo_dispx)and(mousey>0)and(mousey<18) { sendmsg hwnd,$00A1,2,0 }
+}
+if wparam = 2 {
+	if (mousex>0)and(mousex<ginfo_dispx)and(mousey>0)and(mousey<18) { sendmsg hwnd,$00A1,2,0 }
+	TrackPopupMenu hMenu.1, $100, ginfo(0), ginfo(1), 0, hwnd, 0
+	if stat = 0 : return	
+	}
+stop
+
+*scroll_auto
+	pDoc = ie("Document")
+	pBody = pDoc("body")
+	pPW = pDoc("parentWindow")
+	objH = ie("Height")
+	docH = pBody("scrollHeight")
+	scrollH = docH-objH
+	dialog "灰色部分をクリックでstop"
+	repeat
+	if pBody("scrollTop") >= scrollH:break
+	; scrollTopプロパティを利用します。
+	; このプロパティは現在どれだけ下方向にスクロールされているかを示します。
+	; このプロパティとあらかじめ計算しておいたスクロール量を比較し、
+	; 一番下に到達しているかどうかを判断します。
+	pPW->"scrollBy" 0,2
+	; scrollByメソッドを利用します。
+	; このメソッドは現在の位置から指定したピクセル数だけスクロールさせます。
+	; 第一パラメータは水平方向のスクロールのオフセットです。
+	; 正数を指定すると右へ、負数を指定すると左へスクロールします。
+	; 第二パラメータは垂直方向のスクロールのオフセットです。
+	; 正数を指定すると下へ、負数を指定すると上へスクロールします。
+	wait 10
+	loop
+	dialog "自動スクロールが終了しました。"
+;	delcom pPW	; なくてもよさそう。
+;	delcom pBody
+;	delcom pDoc
+	goto *main
+	
+*win0
+	sendmsg hwnd, $112, $F020;最小化
+	goto *main
+*win1
+	sendmsg hwnd, $112, $F030;最大化
+	goto *main
+*win2
+	sendmsg hwnd, $112, $F140;スクリーンセイバー
+	goto *main
+*win3
+	sendmsg hwnd, $112, $F170, 1;省電力
+	goto *main
+*win4
+	sendmsg hwnd, $112, $F170, 2;ディスプレイの電源off
+	goto *main
+*win5
+	picload "pc34.bmp",
+	goto *main
+*win6
+	sendmsg hwnd, $112, $F130
+	goto *main
+	
+	
+	

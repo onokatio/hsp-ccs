@@ -1,0 +1,16 @@
+dialog "cfg", 16, "ふつー"
+
+button"更新" , *save
+stop
+
+*save
+cls 0
+button"更新" , *save
+notesel data
+	sdim cfg,100
+	cfg=refstr
+
+
+	noteload cfg
+
+	mes data

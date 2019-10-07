@@ -1,0 +1,33 @@
+notesel data
+	sdim cfg,100
+	sdim stri,10000
+	cfg="test.cfg"
+	val = noteinfo(notemax)
+
+;	noteadd cfg,0
+;	noteadd "1",1
+;	notesave cfg
+
+;	exist cfg
+;	if strsize=-1:mes "ファイルがありません!":stop
+
+;	noteload cfg
+
+;	mes data
+	
+	
+	
+	
+button"保存" , *save
+	mesbox stri , 100 , 100 , -1
+*a
+	
+noteload cfg
+stri=data
+
+stop
+
+*save
+	noteadd stri,0
+	notesave cfg
+goto *a

@@ -1,0 +1,71 @@
+	#packopt name "CCSFB"
+	#packopt type 0
+	#include "hspext.as"
+
+	
+	title "CCS"
+
+
+*up
+	cls 0
+	sdim dir , 100000000000
+	sdim dir,1000
+;	dirlist dir , "*.*" , 0
+	dirlist2h 2,
+	dirlist2 dir , "*.*" , 0 , 
+	num=stat
+	dirlist2r dir
+
+
+
+*main
+	sdim url,512
+	pos 0,2:mes " パス:"
+	objsize 550,20
+	url = dir_cur
+	pos 47,0:input url
+	objsize 50,24
+	pos 0,20:button "更新" , *up
+	pos 50,20:button "終了", *scriptend
+	pos 100,20:button "↑", *upfile
+	pos 150,20:button "Cドライブ", *fileroot
+	pos 500,45:button "開く", *fileroot
+;	button "開く", *fileroot
+;	button "開く", *fileroot
+;	button "開く", *fileroot
+;	button "開く", *fileroot
+;	button "開く", *fileroot
+;	button "開く", *fileroot
+;	button "開く", *fileroot
+;	button "開く", *fileroot
+;	button "開く", *fileroot
+;	button "開く", *fileroot
+;	button "開く", *fileroot
+;	button "開く", *fileroot
+;	button "開く", *fileroot
+;	button "開く", *fileroot
+;	button "開く", *fileroot
+;	button "開く", *fileroot
+;	font "fontname",24,
+	pos 120,45:mes num
+	mes dir
+
+;dialog "*",16,
+
+
+
+
+*scriptstop
+	stop
+	
+*upfile
+	chdir "../"
+	goto *up
+	stop
+	
+*fileroot
+	chdir "c:/"
+	goto *up
+	stop
+*scriptend
+	end

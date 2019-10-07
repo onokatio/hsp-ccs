@@ -1,0 +1,45 @@
+	#packopt name "CCSインテリジェントパーソナルアシスタント"
+	#packopt type 0
+	#include "user32.as"
+	#include "sb.as"
+	screen 0, ginfo(20), ginfo(21)
+GetWindowLong hwnd, -16
+SetWindowLong hwnd, -16, stat | $10000 | $40000
+;width 1280, 890
+sendmsg hwnd, $112, $F030
+
+	
+	
+	
+	
+	;
+	;IEコンポーネントを使ったブラウザ
+	;
+	title "CCS"
+	font "MS Pゴシック",16,0
+	objmode 2, 0
+
+	
+
+	
+	repeat 
+	sdim msg,500
+	pos 100,100:mesbox msg , 1000 , 800 , 5 , 
+	objsize 50,16
+	a=1
+	pos 50,100:mes a
+
+	a=a+1
+	mes  a
+	;break
+	loop
+	
+	mes msg
+	
+	
+	
+	
+	
+	
+	
+stop

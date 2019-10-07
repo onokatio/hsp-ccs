@@ -1,0 +1,67 @@
+*st
+	#packopt name "CCS"
+	#packopt type 0
+	#include "user32.as"
+	cls 5
+	screen 0, ginfo(20), ginfo(21)
+	GetWindowLong hwnd, -16
+	SetWindowLong hwnd, -16, stat | $10000 | $40000
+;width 1280, 890
+	sendmsg hwnd, $112, $F030
+
+;ginfo_dispx
+;ginfo_dispy=1024
+;dir_cmdline
+	;
+	;
+	;
+	title "CCS"
+	x = ginfo_dispy
+	onerror *er
+a = gettime( 0 )
+b = gettime( 1 )
+c = gettime( 2 )
+d = gettime( 3 )
+	if dir_cmdline = "noreg":goto *noreg
+*noreg
+	clrobj
+	objsize 50,24
+	pos ginfo_dispx/2,10:mes "CCS"
+	pos 0,0:mes abcd
+	pos 0,24 :button "IE" , *IE
+	button "FB" , *FB
+	button "CUI" , *CUI
+	button "設定" , *set
+	if dir_cmdline = "dev":goto *ds
+	
+*main
+	stop
+	
+*ds
+	button "デベロッパー（開発）" , *dev
+	goto *main
+	
+*set
+;	button "" , *dev
+	goto *main
+	
+*dev
+	goto *main
+	
+*er 
+	mes "不明なエラー発生w"
+	
+*IE
+	exec "ccsie.exe"
+	stop
+	
+*FB
+	exec "ccsfb.exe"
+	stop
+	
+*CUI
+	exec "ccscui.exe"
+	stop
+
+*en
+	end
